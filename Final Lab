@@ -1,4 +1,5 @@
-#ui.R
+#ui.r
+
 # Load libraries
 library(shiny)
 library(tidyverse)
@@ -14,9 +15,12 @@ shinyUI(
     # TASK 2: Add first fluidRow to select input for country
     fluidRow(
       column(12, 
-             wellPanel(selectInput("country", "Country:", data = select("United-States", "Canada", "Mexico", "Germany", "Philippines")))  # add select input 
+             wellPanel(selectInput(inputId = "country", 
+                                   label = "Country of Origin",
+                                   choices = c("United-States","Canada","Mexico","Germany", "Philippines"),
+                                   selected = "United-States")  # add select input 
              )
-    ),
+    )),
     
     # TASK 3: Add second fluidRow to control how to plot the continuous variables
     fluidRow(
@@ -27,7 +31,7 @@ shinyUI(
                radioButtons("graph_type","Graph:",choices = c("histogram","boxplot"))    # add radio buttons for chart type
                )
              ),
-      column(9, plotOutput(p1))  # add plot output
+      column(9, plotOutput("p1"))  # add plot output
     ),
     
     # TASK 4: Add third fluidRow to control how to plot the categorical variables
@@ -39,13 +43,13 @@ shinyUI(
                checkboxInput("is_stacked","Stack Bar",TRUE)     # add check box input for stacked bar chart option
                )
              ),
-      column(9, plotOutput(p2))  # add plot output
+      column(9, plotOutput("p2"))  # add plot output
     )
   )
 )
 
 
-#server.R
+#server.r
 
 # Load libraries
 library(shiny)
@@ -67,18 +71,20 @@ shinyServer(function(input, output) {
   output$p1 <- renderPlot({
     if (input$graph_type == "histogram") {
       # Histogram
-      ggplot(df_country(), aes_string(x = input$continuous_variable)) +
-        geom_histogram() +  # histogram geom
-        labs(x=input$continuous_variable, y = "count", title = "Histogram") +  # labels
-        facet_wrap(~prediction)    # facet by prediction
+      ggplot(df_country(), aes_string(x =input$continuous_variable)) +
+        geom_histogram(bins = 30, color="blue",fill="deepskyblue") +  # histogram geom
+        labs(y="Number of People", title=paste("Trend of ",input$continuous_variable)) +  # labels
+        facet_wrap(~prediction)+ # facet by prediction
+        theme_light()
     }
     else {
       # Boxplot
       ggplot(df_country(), aes_string(y = input$continuous_variable)) +
-        geom_boxplot() +  # boxplot geom
+        geom_boxplot(color="chocolate",fill="darkgoldenrod1") +  # boxplot geom
         coord_flip() +  # flip coordinates
-        labs(x="Prediction", y = input$continuous_variable , title = "Boxplot") +  # labels
-        facet_wrap(~prediction)    # facet by prediction
+        labs(x="Number of People", title=paste("Boxplot of",input$continuous_variable)) +  # labels
+        facet_wrap(~prediction)+    # facet by prediction
+        theme_light()
     }
     
   })
@@ -86,21 +92,20 @@ shinyServer(function(input, output) {
   # TASK 6: Create logic to plot faceted bar chart or stacked bar chart
   output$p2 <- renderPlot({
     # Bar chart
-    p <- ggplot(df_country(), aes_string(x = input$categorical_variable)) +
-      labs (x="categorical",
-            y = "number of people",
-            title = "trend of work/class") +  # labels
-      theme(element_text(angle=45), legend.position = "bottom")    # modify theme to change text angle and legend position
+    p <- ggplot(df_country(), aes_string(x =input$categorical_variable)) +
+      labs(y="Number of People",title=(paste("Trend of",input$categorical_variable))) +  # labels
+      theme_light()+
+      theme(axis.text.x=element_text(angle=45),legend.position="bottom")    # modify theme to change text angle and legend position
+    
     
     if (input$is_stacked) {
-      p + geom_bar(fill = "prediction", position = "stack")  # add bar geom and use prediction as fill
+      p + geom_bar(aes(fill=prediction))  # add bar geom and use prediction as fill
     }
     else{
       p + 
-        geom_bar(aes_string(fill="prediction", position="stack")) + # add bar geom and use input$categorical_variables as fill 
-        facet_wrap(~prediction)  # facet by prediction
+        geom_bar(aes_string(fill=input$categorical_variable)) + # add bar geom and use input$categorical_variables as fill 
+        facet_wrap(~prediction)   # facet by prediction
     }
   })
   
 })
-
